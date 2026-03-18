@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────────────────────
+// Enums
+// ───────────────────────────────────────────
+
+// TipoTarefa foi substituído por modelo dinâmico (ver model TipoTarefa abaixo)
+
+enum TipoRecorrencia {
+  DIARIA      // todos os dias
+  SEMANAL     // dia da semana específico (campo diaSemana)
+  DIAS_UTEIS  // segunda a sexta
+  MENSAL      // dia fixo do mês (campo diaDoMes)
+  ANUAL       // uma vez por ano, em mês específico (campo mesDoAno, 1-12) + dia (diaDoMes)
+}
+
+enum StatusTarefa {
+  PENDENTE
+  EM_ANDAMENTO
+  PAUSADA
+  CONCLUIDA
+  AGUARDANDO
+}
+
+enum ResponsavelBloqueio {
+  CLIENTE
+  INTERNO
+}
+
+// ───────────────────────────────────────────
+// Modelos
+// ───────────────────────────────────────────
+
+model Usuario {
+  id               String          @id @default(cuid())
+  nome             String
+  email            String          @unique
+  telefone         String?
+  senhaHash        String
+  resetToken       String?
+  resetTokenExp    DateTime?
+  ativo            Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  clientes         Cliente[]
+  tarefasModelo    TarefaModelo[]
+  tiposTarefa      TipoTarefa[]
+}
+
+// Tipos de tarefa gerenciados pelo usuário (substitui enum fixo)
+model TipoTarefa {
+  id            String         @id @default(cuid())
+  nome          String
+  cor           String         @default("#6366f1")
+  ativo         Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+
+  usuarioId     String
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+
+  tarefasModelo TarefaModelo[]
+  tarefasConfig TarefaConfig[]
+
+  @@unique([usuarioId, nome])
+}
+
+model Cliente {
+  id               String         @id @default(cuid())
+  slug             String
+  razaoSocial      String
+  nomeFantasia     String?
+  cnpj             String?
+  email            String?
+  telefone         String?
+  nomeContato      String?
+  cor              String         @default("#6366f1")
+  ativo            Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  usuarioId        String
+  usuario          Usuario        @relation(fields: [usuarioId], references: [id])
+
+  tarefasConfig    TarefaConfig[]
+  tarefas          Tarefa[]
+  vencimentos      Vencimento[]
+
+  @@unique([usuarioId, slug])
+  @@unique([usuarioId, cnpj])
+}
+
+// Catálogo pessoal do usuário — modelos reutilizáveis de tarefa
+model TarefaModelo {
+  id          String          @id @default(cuid())
+  nome        String
+  tipoId      String
+  tipo        TipoTarefa      @relation(fields: [tipoId], references: [id])
+  recorrencia TipoRecorrencia
+  diaSemana   Int?            // 0=Dom, 1=Seg ... 6=Sáb (para SEMANAL)
+  diaDoMes    Int?            // 1-31 (para MENSAL e ANUAL)
+  mesDoAno    Int?            // 1-12 (para ANUAL)
+  horaLimite  String?         // ex: "11:00"
+  ativo       Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  usuarioId   String
+  usuario     Usuario         @relation(fields: [usuarioId], references: [id])
+
+  configs     TarefaConfig[]
+}
+
+// Configuração de tarefa por cliente — pode vir de um modelo ou ser criada do zero
+model TarefaConfig {
+  id          String          @id @default(cuid())
+  nome        String
+  tipoId      String
+  tipo        TipoTarefa      @relation(fields: [tipoId], references: [id])
+  recorrencia TipoRecorrencia
+  diaSemana   Int?
+  diaDoMes    Int?
+  mesDoAno    Int?            // 1-12 (para ANUAL)
+  horaLimite  String?         // ex: "11:00"
+  ativo       Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  clienteId   String
+  cliente     Cliente         @relation(fields: [clienteId], references: [id])
+
+  modeloId    String?
+  modelo      TarefaModelo?   @relation(fields: [modeloId], references: [id])
+
+  tarefas     Tarefa[]
+}
+
+// Instância diária gerada a partir de uma TarefaConfig
+model Tarefa {
+  id                    String               @id @default(cuid())
+  data                  DateTime
+  status                StatusTarefa         @default(PENDENTE)
+  horaLimite            String?              // herdado da config no dia da criação
+  observacao            String?
+
+  // Tempos
+  iniciadaEm            DateTime?
+  finalizadaEm          DateTime?
+
+  // Bloqueios
+  aguardandoMotivo      String?
+  aguardandoDesde       DateTime?
+  aguardandoResponsavel ResponsavelBloqueio?
+  previsaoRetorno       DateTime?
+
+  createdAt             DateTime             @default(now())
+
+  clienteId      String
+  cliente        Cliente      @relation(fields: [clienteId], references: [id])
+
+  tarefaConfigId String
+  tarefaConfig   TarefaConfig @relation(fields: [tarefaConfigId], references: [id])
+}
+
+// Alerta de data importante
+model Vencimento {
+  id        String   @id @default(cuid())
+  nome      String
+  data      DateTime
+  createdAt DateTime @default(now())
+
+  clienteId String
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+}
