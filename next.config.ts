@@ -11,6 +11,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+    turbopack: {
+        root: process.cwd(),
+    },
     async headers() {
         if (isDev) return [] // desativado em dev — não quebra hot reload
         return [{ source: '/(.*)', headers: securityHeaders }]

@@ -83,6 +83,57 @@ npm run test:e2e:ui          # modo visual interativo
 npm run test:smoke           # apenas smoke tests
 ```
 
+### Execução correta (passo a passo)
+
+#### Opção A (recomendada para CI/local rápido): rodar tudo com script único
+
+1. Garanta que **não existe** `next dev` rodando manualmente em outro terminal.
+2. Rode:
+
+```bash
+npm run test:all
+```
+
+Esse fluxo usa `playwright.config.ts` para subir/parar o servidor automaticamente.
+
+#### Opção B (mais estável para debug local): servidor manual + E2E separado
+
+1. Terminal 1:
+
+```bash
+npm run dev
+```
+
+2. Espere aparecer `Ready` e `Local: http://localhost:3000`.
+3. Terminal 2:
+
+```bash
+npm run test:types
+npm test
+npm run test:e2e -- --workers=1
+```
+
+Use essa opção quando o Playwright não conseguir iniciar o webServer automaticamente.
+
+### Quando parar o servidor manual?
+
+- Se for usar `npm run test:all`: **pare** qualquer `npm run dev` manual antes.
+- Se for usar `npm run test:e2e` com debug local: **mantenha** o `npm run dev` manual ligado.
+
+### Troubleshooting rápido (ERR_CONNECTION_REFUSED em localhost:3000)
+
+Se aparecer `net::ERR_CONNECTION_REFUSED`, o browser de teste não encontrou o app no `localhost:3000`.
+
+No PowerShell (Windows), limpe instâncias antigas e rode novamente:
+
+```powershell
+Get-CimInstance Win32_Process |
+    Where-Object { $_.Name -match 'node|next' -and $_.CommandLine -match 'next dev' } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+npm run test:all
+```
+
 ### Fluxos cobertos
 
 1. **Smoke:** `/login`, `/`, `/tarefas`, `/clientes` respondem < 400
