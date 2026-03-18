@@ -1,3 +1,6 @@
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+
 const clientes = [
     { nome: 'Padaria Sol', sigla: 'PS', cor: '#378ADD', bg: '#dbeeff', tc: '#185FA5', score: 5 },
     { nome: 'Constr. Mar Azul', sigla: 'CM', cor: '#1D9E75', bg: '#d4f5e9', tc: '#0F6E56', score: 9 },
@@ -70,7 +73,10 @@ function TaskCard({ t }: { t: typeof tarefas[0] }) {
     )
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+    const session = await auth()
+    if (!session?.user?.id) redirect('/login')
+
     const atrasadas = tarefas.filter(t => t.diasAtraso > 0 && !t.done)
     const pendentes = tarefas.filter(t => t.diasAtraso === 0 && !t.done)
     const concluidas = tarefas.filter(t => t.done)

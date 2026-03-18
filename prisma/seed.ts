@@ -62,7 +62,7 @@ async function main() {
   // -------------------------------------------------------------
   const ecovila = clientes[0]
 
-  const configsEcovila = []
+  const configsEcovila: Awaited<ReturnType<typeof prisma.tarefaConfig.create>>[] = []
   for (const m of modelos) {
     const config = await prisma.tarefaConfig.create({
       data: {
@@ -78,7 +78,7 @@ async function main() {
   }
 
   // Helper de Datas focado em Março de 2026
-  const data = (dia: number, hora: number = 12) => new Date(2026, 2, dia, hora, 0, 0) // Março é mês 2 no JS
+  const data = (dia: number, hora: number = 12, minuto: number = 0) => new Date(2026, 2, dia, hora, minuto, 0) // Março é mês 2 no JS
   
   const getConf = (nome: string) => configsEcovila.find(c => c.nome === nome)!
 

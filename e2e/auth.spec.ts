@@ -20,4 +20,19 @@ test.describe('Autenticação', () => {
         await page.click('button[type="submit"]')
         await expect(page.locator('text=/inválid|incorret|erro/i')).toBeVisible({ timeout: 5000 })
     })
+
+    test('acesso a / sem sessão redireciona para /login', async ({ page }) => {
+        await page.goto('/', { waitUntil: 'networkidle' })
+        await expect(page).toHaveURL(/login/, { timeout: 5000 })
+    })
+
+    test('acesso a /clientes sem sessão redireciona para /login', async ({ page }) => {
+        await page.goto('/clientes', { waitUntil: 'networkidle' })
+        await expect(page).toHaveURL(/login/, { timeout: 5000 })
+    })
+
+    test('acesso direto a /clientes/{slug} sem sessão redireciona para /login', async ({ page }) => {
+        await page.goto('/clientes/empresa-teste', { waitUntil: 'networkidle' })
+        await expect(page).toHaveURL(/login/, { timeout: 5000 })
+    })
 })

@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     const { id } = await params
-    const cliente = await prisma.cliente.findUnique({ where: { id } })
+    const cliente = await prisma.cliente.findFirst({ where: { id, usuarioId: session.user.id } })
     if (!cliente) return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
     return NextResponse.json(cliente)
   } catch {
@@ -14,6 +20,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     const { id } = await params
     const body = await request.json()
     const { razaoSocial, nomeFantasia, slug, cnpj, email, telefone, nomeContato, cor } = body
@@ -24,6 +35,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!slug?.trim()) {
       return NextResponse.json({ error: 'Identificador (slug) é obrigatório' }, { status: 400 })
     }
+
+    const existente = await prisma.cliente.findFirst({ where: { id, usuarioId: session.user.id } })
+    if (!existente) return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
 
     const cliente = await prisma.cliente.update({
       where: { id },
@@ -50,7 +64,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
     const { id } = await params
+    const existente = await prisma.cliente.findFirst({ where: { id, usuarioId: session.user.id } })
+    if (!existente) return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
+
     await prisma.cliente.update({
       where: { id },
       data: { ativo: false },

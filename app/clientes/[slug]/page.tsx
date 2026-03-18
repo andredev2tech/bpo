@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
 
 function nomeExibicao(c: { nomeFantasia: string | null; razaoSocial: string }) {
     return c.nomeFantasia || c.razaoSocial
@@ -42,10 +43,13 @@ const MOCK_SEMANA = [
 
 
 export default async function ClienteDashboardPage({ params }: { params: Promise<{ slug: string }> }) {
+    const session = await auth()
+    if (!session?.user?.id) redirect('/login')
+
     const { slug } = await params
 
     const cliente = await prisma.cliente.findFirst({
-        where: { slug }
+        where: { slug, usuarioId: session.user.id }
     })
 
     if (!cliente) notFound()

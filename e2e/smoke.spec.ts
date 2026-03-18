@@ -21,4 +21,9 @@ test.describe('Smoke — páginas protegidas redirecionam para login', () => {
             await expect(page).toHaveURL(/login/, { timeout: 5000 })
         })
     }
+
+    test('/clientes/{slug} redireciona para /login sem sessão', async ({ page }) => {
+        await page.goto('/clientes/empresa-teste')
+        await expect(page).toHaveURL(/login/, { timeout: 5000 })
+    })
 })

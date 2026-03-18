@@ -23,8 +23,14 @@ export default function DashboardLayout({
 
     useEffect(() => {
         fetch('/api/clientes')
-            .then(r => r.json())
-            .then(data => setClientes(data))
+            .then(r => {
+                if (r.status === 401) {
+                    signOut({ callbackUrl: '/login' })
+                    return
+                }
+                return r.json()
+            })
+            .then(data => setClientes(data || []))
             .catch(() => { })
     }, [])
 

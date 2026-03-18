@@ -1,7 +1,8 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import Link from 'next/link'
 
 type ClienteInfo = {
@@ -32,8 +33,14 @@ export default function ClienteLayout({
 
     useEffect(() => {
         fetch(`/api/clientes/slug/${slug}`)
-            .then(r => r.json())
-            .then(data => setCliente(data))
+            .then(r => {
+                if (r.status === 401 || r.status === 404) {
+                    signOut({ callbackUrl: '/login' })
+                    return
+                }
+                return r.json()
+            })
+            .then(data => setCliente(data || null))
             .catch(() => { })
     }, [slug])
 
